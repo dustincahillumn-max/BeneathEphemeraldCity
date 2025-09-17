@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/Boss/Archivist.cs" id="1"]
+[ext_resource type="PackedScene" path="res://Scenes/Boss/ClueFragment.tscn" id="2"]
+
+[node name="ArchivistArena" type="Node3D"]
+script = ExtResource("1")
+CluePrefab = ExtResource("2")
+BossNodePath = NodePath("ArchivistBoss")
+CluesRootPath = NodePath("Clues")
+KannaOraclePath = NodePath("/root/OracleStub")
+
+[node name="ArchivistBoss" type="Node3D" parent="."]
+[node name="Clues" type="Node3D" parent="."]
