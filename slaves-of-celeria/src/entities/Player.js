@@ -2,38 +2,47 @@ export default class Player {
     constructor(scene, x, y) {
         this.scene = scene;
 
-        // Create player sprite (placeholder: simple graphics)
+        // Create player sprite (SLAVE CLASS: thin, nimble, weak)
         const graphics = scene.add.graphics();
-        graphics.fillStyle(0xc3a464, 1); // Gold color for homunculus
-        graphics.fillCircle(0, 0, 12);
 
-        // Add directional indicator
+        // Small thin body (vertical oval)
+        graphics.fillStyle(0xc3a464, 1); // Gold color for homunculus
+        graphics.fillEllipse(0, 0, 10, 16); // Thin width, taller height
+
+        // Head
+        graphics.fillStyle(0xd4b574, 1);
+        graphics.fillCircle(0, -6, 5);
+
+        // Directional indicator (small arrow)
         graphics.fillStyle(0x6a3d25, 1);
         graphics.fillTriangle(
-            0, -12,
-            -6, 0,
-            6, 0
+            0, -10,
+            -3, -5,
+            3, -5
         );
 
-        graphics.generateTexture('player_temp', 24, 24);
+        graphics.generateTexture('player_slave', 20, 32);
         graphics.destroy();
 
         // Create sprite
-        this.sprite = scene.physics.add.sprite(x, y, 'player_temp');
+        this.sprite = scene.physics.add.sprite(x, y, 'player_slave');
         this.sprite.setCollideWorldBounds(true);
+        this.sprite.setSize(10, 16); // Thin collision box for narrow passages
 
-        // Movement properties
-        this.speed = 160;
+        // Movement properties (SLAVE CLASS: fast and nimble)
+        this.speed = 200; // Faster than Knight will be
         this.direction = new Phaser.Math.Vector2(0, -1); // Facing up initially
 
-        // Combat properties
-        this.health = 100;
-        this.maxHealth = 100;
-        this.attackDamage = 10;
-        this.attackRange = 50;
-        this.attackCooldown = 0;
-        this.attackCooldownMax = 500; // ms
-        this.isAttacking = false;
+        // Survival properties
+        this.health = 50; // Fragile slave
+        this.maxHealth = 50;
+
+        // PUSH mechanic (core Slave ability)
+        this.pushForce = 250;
+        this.pushRange = 40;
+        this.pushCooldown = 0;
+        this.pushCooldownMax = 300; // ms - fast push
+        this.isPushing = false;
 
         // Kanna knowledge
         this.knownKanna = new Set();
@@ -41,12 +50,12 @@ export default class Player {
         // Intention tracking reference (set by GameScene)
         this.intentionEngine = null;
 
-        // Combat visual (attack indicator)
-        this.attackIndicator = null;
+        // Push visual (push wave indicator)
+        this.pushIndicator = null;
     }
 
     update(input, delta) {
-        this.attackCooldown = Math.max(0, this.attackCooldown - delta);
+        this.pushCooldown = Math.max(0, this.pushCooldown - delta);
         const velocity = new Phaser.Math.Vector2(0, 0);
 
         // Movement input
@@ -78,40 +87,44 @@ export default class Player {
         );
     }
 
-    attack(enemies) {
-        if (this.attackCooldown > 0 || this.isAttacking) {
+    push(enemies, pushableObjects) {
+        if (this.pushCooldown > 0 || this.isPushing) {
             return false;
         }
 
-        this.isAttacking = true;
-        this.attackCooldown = this.attackCooldownMax;
+        this.isPushing = true;
+        this.pushCooldown = this.pushCooldownMax;
 
-        // Visual feedback - flash attack indicator
-        if (!this.attackIndicator) {
-            this.attackIndicator = this.scene.add.graphics();
+        // Visual feedback - push wave
+        if (!this.pushIndicator) {
+            this.pushIndicator = this.scene.add.graphics();
         }
 
-        this.attackIndicator.clear();
-        this.attackIndicator.lineStyle(3, 0xc3a464, 0.8);
-        this.attackIndicator.strokeCircle(
+        // Direction player is facing
+        const pushDir = this.direction.clone().normalize();
+
+        // Draw push wave
+        this.pushIndicator.clear();
+        this.pushIndicator.lineStyle(4, 0xc3a464, 0.9);
+        this.pushIndicator.strokeCircle(
             this.sprite.x,
             this.sprite.y,
-            this.attackRange
+            this.pushRange
         );
 
-        // Fade out attack indicator
+        // Expanding wave animation
         this.scene.tweens.add({
-            targets: this.attackIndicator,
+            targets: this.pushIndicator,
             alpha: 0,
-            duration: 200,
+            duration: 250,
             onComplete: () => {
-                this.attackIndicator.alpha = 1;
-                this.isAttacking = false;
+                this.pushIndicator.alpha = 1;
+                this.isPushing = false;
             }
         });
 
-        // Check for hits
-        let hitCount = 0;
+        // Push enemies away
+        let pushedCount = 0;
         enemies.forEach(enemy => {
             if (enemy.health <= 0) return;
 
@@ -120,18 +133,53 @@ export default class Player {
                 enemy.sprite.x, enemy.sprite.y
             );
 
-            if (dist <= this.attackRange) {
-                enemy.takeDamage(this.attackDamage);
-                hitCount++;
+            if (dist <= this.pushRange) {
+                // Calculate direction FROM player TO enemy
+                const angle = Phaser.Math.Angle.Between(
+                    this.sprite.x, this.sprite.y,
+                    enemy.sprite.x, enemy.sprite.y
+                );
 
-                // Record attack in Intention Engine
+                // Push enemy away
+                const knockback = new Phaser.Math.Vector2(
+                    Math.cos(angle),
+                    Math.sin(angle)
+                );
+
+                if (enemy.sprite && enemy.sprite.body) {
+                    enemy.sprite.setVelocity(
+                        knockback.x * this.pushForce * 2,
+                        knockback.y * this.pushForce * 2
+                    );
+                }
+
+                pushedCount++;
+
+                // Record in Intention Engine (shows tactical thinking)
                 if (this.intentionEngine) {
-                    this.intentionEngine.recordAttack(this.attackDamage);
+                    this.intentionEngine.recordAttack(1); // Still tracks "aggressive" action
                 }
             }
         });
 
-        return hitCount > 0;
+        // Push objects
+        if (pushableObjects) {
+            pushableObjects.forEach(obj => {
+                if (!obj.isPushable) return;
+
+                const dist = Phaser.Math.Distance.Between(
+                    this.sprite.x, this.sprite.y,
+                    obj.sprite.x, obj.sprite.y
+                );
+
+                if (dist <= this.pushRange) {
+                    obj.push(pushDir, this.pushForce);
+                    pushedCount++;
+                }
+            });
+        }
+
+        return pushedCount > 0;
     }
 
     takeDamage(amount) {
@@ -165,8 +213,8 @@ export default class Player {
     }
 
     destroy() {
-        if (this.attackIndicator) {
-            this.attackIndicator.destroy();
+        if (this.pushIndicator) {
+            this.pushIndicator.destroy();
         }
     }
 }
