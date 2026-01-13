@@ -3,6 +3,7 @@ import Player from '../entities/Player.js';
 import Enemy from '../entities/Enemy.js';
 import IntentionEngine from '../systems/IntentionEngine.js';
 import KannaSystem from '../systems/KannaSystem.js';
+import KannaLibrary from '../ui/KannaLibrary.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -25,6 +26,10 @@ export default class GameScene extends Phaser.Scene {
 
         // Initialize Kanna System
         this.kannaSystem = new KannaSystem(this, this.intentionEngine);
+
+        // Initialize Kanna Library UI
+        this.kannaLibrary = new KannaLibrary(this);
+        this.kannaLibrary.create();
 
         // Register Kanna spawn locations on walls
         this.registerKannaSpawnLocations();
@@ -50,6 +55,9 @@ export default class GameScene extends Phaser.Scene {
 
         // Attack input (Spacebar)
         this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+        // Kanna Library (L key)
+        this.libraryKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
 
         // Debug toggle (D key)
         this.debugKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
@@ -175,6 +183,16 @@ export default class GameScene extends Phaser.Scene {
             this.player.attack(this.enemies);
         }
 
+        // Library toggle
+        if (Phaser.Input.Keyboard.JustDown(this.libraryKey)) {
+            this.kannaLibrary.toggle(this.player);
+        }
+
+        // Skip gameplay updates when library is open
+        if (this.kannaLibrary.isOpen) {
+            return;
+        }
+
         // Update player
         this.player.update(input, delta);
 
@@ -202,7 +220,7 @@ export default class GameScene extends Phaser.Scene {
         this.uiText.setText([
             `HP: ${healthBar} ${this.player.health}/${this.player.maxHealth}`,
             `Kanna Discovered: ${this.kannaSystem.getDiscoveredKannaCount()}`,
-            `Press SPACE to attack | D to toggle debug`
+            `SPACE: Attack | L: Library | D: Debug`
         ]);
 
         // Debug info
