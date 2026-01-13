@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
+import Enemy from '../entities/Enemy.js';
+import IntentionEngine from '../systems/IntentionEngine.js';
+import KannaSystem from '../systems/KannaSystem.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -13,8 +16,24 @@ export default class GameScene extends Phaser.Scene {
         // Create a simple test environment
         this.createEnvironment();
 
+        // Initialize Intention Engine
+        this.intentionEngine = new IntentionEngine(this);
+
         // Create player
         this.player = new Player(this, 400, 300);
+        this.player.intentionEngine = this.intentionEngine;
+
+        // Initialize Kanna System
+        this.kannaSystem = new KannaSystem(this, this.intentionEngine);
+
+        // Register Kanna spawn locations on walls
+        this.registerKannaSpawnLocations();
+
+        // Create enemies
+        this.enemies = [];
+        this.spawnEnemy(700, 400);
+        this.spawnEnemy(1000, 600);
+        this.spawnEnemy(300, 800);
 
         // Camera follows player
         this.cameras.main.startFollow(this.player.sprite, true, 0.1, 0.1);
@@ -29,13 +48,44 @@ export default class GameScene extends Phaser.Scene {
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
+        // Attack input (Spacebar)
+        this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+        // Debug toggle (D key)
+        this.debugKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+        this.showDebug = true;
+
         // Debug text
         this.debugText = this.add.text(10, 10, '', {
-            font: '12px monospace',
+            font: '11px monospace',
             fill: '#c3a464',
-            backgroundColor: '#000000aa',
-            padding: { x: 5, y: 5 }
+            backgroundColor: '#000000dd',
+            padding: { x: 8, y: 6 }
         }).setScrollFactor(0).setDepth(100);
+
+        // UI text (health, Kanna count)
+        this.uiText = this.add.text(10, this.cameras.main.height - 60, '', {
+            font: '14px monospace',
+            fill: '#ffffff',
+            backgroundColor: '#000000aa',
+            padding: { x: 10, y: 5 }
+        }).setScrollFactor(0).setDepth(100);
+    }
+
+    spawnEnemy(x, y) {
+        const enemy = new Enemy(this, x, y);
+        this.enemies.push(enemy);
+        this.physics.add.collider(enemy.sprite, this.walls);
+    }
+
+    registerKannaSpawnLocations() {
+        // Register locations near walls where Kanna can appear
+        this.kannaSystem.registerSpawnLocation(200, 250);
+        this.kannaSystem.registerSpawnLocation(500, 350);
+        this.kannaSystem.registerSpawnLocation(900, 450);
+        this.kannaSystem.registerSpawnLocation(700, 700);
+        this.kannaSystem.registerSpawnLocation(1300, 400);
+        this.kannaSystem.registerSpawnLocation(400, 950);
     }
 
     createEnvironment() {
@@ -106,6 +156,12 @@ export default class GameScene extends Phaser.Scene {
     update(time, delta) {
         if (!this.player) return;
 
+        // Toggle debug display
+        if (Phaser.Input.Keyboard.JustDown(this.debugKey)) {
+            this.showDebug = !this.showDebug;
+            this.debugText.setVisible(this.showDebug);
+        }
+
         // Get input
         const input = {
             left: this.cursors.left.isDown || this.wasd.left.isDown,
@@ -114,17 +170,60 @@ export default class GameScene extends Phaser.Scene {
             down: this.cursors.down.isDown || this.wasd.down.isDown
         };
 
+        // Attack input
+        if (Phaser.Input.Keyboard.JustDown(this.attackKey)) {
+            this.player.attack(this.enemies);
+        }
+
         // Update player
         this.player.update(input, delta);
+
+        // Update Intention Engine
+        this.intentionEngine.update(delta);
+
+        // Update Kanna System
+        this.kannaSystem.update(time, delta);
+
+        // Update enemies
+        this.enemies = this.enemies.filter(enemy => {
+            if (enemy.health > 0) {
+                enemy.update(this.player, delta);
+                return true;
+            }
+            return false;
+        });
 
         // Collision with walls
         this.physics.collide(this.player.sprite, this.walls);
 
-        // Debug info
-        this.debugText.setText([
-            `Position: ${Math.floor(this.player.sprite.x)}, ${Math.floor(this.player.sprite.y)}`,
-            `Velocity: ${Math.floor(this.player.sprite.body.velocity.x)}, ${Math.floor(this.player.sprite.body.velocity.y)}`,
-            'Controls: WASD or Arrow Keys'
+        // UI display
+        const healthBar = '█'.repeat(Math.floor(this.player.health / 10)) +
+                         '░'.repeat(Math.floor((this.player.maxHealth - this.player.health) / 10));
+        this.uiText.setText([
+            `HP: ${healthBar} ${this.player.health}/${this.player.maxHealth}`,
+            `Kanna Discovered: ${this.kannaSystem.getDiscoveredKannaCount()}`,
+            `Press SPACE to attack | D to toggle debug`
         ]);
+
+        // Debug info
+        if (this.showDebug) {
+            const dominant = this.intentionEngine.getDominantMotivation();
+            this.debugText.setText([
+                `=== DEBUG ===`,
+                `Position: ${Math.floor(this.player.sprite.x)}, ${Math.floor(this.player.sprite.y)}`,
+                `Enemies: ${this.enemies.length}`,
+                '',
+                `INTENTION: ${dominant.motivation.toUpperCase()} (${Math.floor(dominant.strength)})`,
+                `Aggression: ${Math.floor(this.intentionEngine.motivations.aggression)}`,
+                `Reverence: ${Math.floor(this.intentionEngine.motivations.reverence)}`,
+                `Curiosity: ${Math.floor(this.intentionEngine.motivations.curiosity)}`,
+                `Fear: ${Math.floor(this.intentionEngine.motivations.fear)}`,
+                `Greed: ${Math.floor(this.intentionEngine.motivations.greed)}`,
+                `Pride: ${Math.floor(this.intentionEngine.motivations.pride)}`,
+                '',
+                `Attacks: ${this.intentionEngine.metrics.attackCount}`,
+                `Retreats: ${this.intentionEngine.metrics.retreatCount}`
+            ]);
+        }
     }
 }

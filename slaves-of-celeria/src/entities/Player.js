@@ -26,16 +26,27 @@ export default class Player {
         this.speed = 160;
         this.direction = new Phaser.Math.Vector2(0, -1); // Facing up initially
 
-        // Combat properties (for future)
+        // Combat properties
         this.health = 100;
         this.maxHealth = 100;
-        this.chainEquipped = false;
+        this.attackDamage = 10;
+        this.attackRange = 50;
+        this.attackCooldown = 0;
+        this.attackCooldownMax = 500; // ms
+        this.isAttacking = false;
 
-        // Kanna knowledge (for future)
+        // Kanna knowledge
         this.knownKanna = new Set();
+
+        // Intention tracking reference (set by GameScene)
+        this.intentionEngine = null;
+
+        // Combat visual (attack indicator)
+        this.attackIndicator = null;
     }
 
     update(input, delta) {
+        this.attackCooldown = Math.max(0, this.attackCooldown - delta);
         const velocity = new Phaser.Math.Vector2(0, 0);
 
         // Movement input
@@ -67,18 +78,95 @@ export default class Player {
         );
     }
 
+    attack(enemies) {
+        if (this.attackCooldown > 0 || this.isAttacking) {
+            return false;
+        }
+
+        this.isAttacking = true;
+        this.attackCooldown = this.attackCooldownMax;
+
+        // Visual feedback - flash attack indicator
+        if (!this.attackIndicator) {
+            this.attackIndicator = this.scene.add.graphics();
+        }
+
+        this.attackIndicator.clear();
+        this.attackIndicator.lineStyle(3, 0xc3a464, 0.8);
+        this.attackIndicator.strokeCircle(
+            this.sprite.x,
+            this.sprite.y,
+            this.attackRange
+        );
+
+        // Fade out attack indicator
+        this.scene.tweens.add({
+            targets: this.attackIndicator,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => {
+                this.attackIndicator.alpha = 1;
+                this.isAttacking = false;
+            }
+        });
+
+        // Check for hits
+        let hitCount = 0;
+        enemies.forEach(enemy => {
+            if (enemy.health <= 0) return;
+
+            const dist = Phaser.Math.Distance.Between(
+                this.sprite.x, this.sprite.y,
+                enemy.sprite.x, enemy.sprite.y
+            );
+
+            if (dist <= this.attackRange) {
+                enemy.takeDamage(this.attackDamage);
+                hitCount++;
+
+                // Record attack in Intention Engine
+                if (this.intentionEngine) {
+                    this.intentionEngine.recordAttack(this.attackDamage);
+                }
+            }
+        });
+
+        return hitCount > 0;
+    }
+
     takeDamage(amount) {
         this.health = Math.max(0, this.health - amount);
-        // TODO: Flash sprite, play sound
+
+        // Flash sprite red
+        this.sprite.setTint(0xff0000);
+        this.scene.time.delayedCall(150, () => {
+            this.sprite.clearTint();
+        });
+
+        // Record damage in Intention Engine
+        if (this.intentionEngine) {
+            this.intentionEngine.recordDamage(amount);
+        }
+
         return this.health <= 0;
     }
 
     learnKanna(kannaId) {
+        if (this.knownKanna.has(kannaId)) {
+            return false; // Already known
+        }
         this.knownKanna.add(kannaId);
         // TODO: Show notification, update library
+        return true;
     }
 
     hasKanna(kannaId) {
         return this.knownKanna.has(kannaId);
+    }
+
+    destroy() {
+        if (this.attackIndicator) {
+            this.attackIndicator.destroy();
+        }
     }
 }
