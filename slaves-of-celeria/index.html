@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uncasted 2: Slaves of Celeria</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            color: #c3a464;
+        }
+        #game-container {
+            box-shadow: 0 0 20px rgba(195, 164, 100, 0.3);
+        }
+        .title-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px #000;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="title-overlay">
+        UNCASTED 2: SLAVES OF CELERIA<br>
+        <span style="font-size: 10px; opacity: 0.7;">alpha v0.1 - Use WASD to move</span>
+    </div>
+    <div id="game-container"></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
