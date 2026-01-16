@@ -2,33 +2,47 @@ export default class Player {
     constructor(scene, x, y) {
         this.scene = scene;
 
-        // Create player sprite (SLAVE CLASS: thin, nimble, weak)
-        // Zelda-like scale - visible but thin
-        const graphics = scene.add.graphics();
+        // Check if real sprite sheet loaded
+        const hasRealSprites = scene.textures.exists('slave_spritesheet');
 
-        // Thin body (vertical oval) - thinner than Link
-        graphics.fillStyle(0xc3a464, 1); // Gold color for homunculus
-        graphics.fillEllipse(0, 0, 16, 28); // Thin width, taller height
+        if (!hasRealSprites) {
+            // FALLBACK: Create procedural player sprite (SLAVE CLASS: thin, nimble, weak)
+            // Zelda-like scale - visible but thin
+            const graphics = scene.add.graphics();
 
-        // Head
-        graphics.fillStyle(0xd4b574, 1);
-        graphics.fillCircle(0, -10, 8);
+            // Thin body (vertical oval) - thinner than Link
+            graphics.fillStyle(0xc3a464, 1); // Gold color for homunculus
+            graphics.fillEllipse(0, 0, 16, 28); // Thin width, taller height
 
-        // Directional indicator (small arrow)
-        graphics.fillStyle(0x6a3d25, 1);
-        graphics.fillTriangle(
-            0, -16,
-            -5, -10,
-            5, -10
-        );
+            // Head
+            graphics.fillStyle(0xd4b574, 1);
+            graphics.fillCircle(0, -10, 8);
 
-        graphics.generateTexture('player_slave', 32, 48);
-        graphics.destroy();
+            // Directional indicator (small arrow)
+            graphics.fillStyle(0x6a3d25, 1);
+            graphics.fillTriangle(
+                0, -16,
+                -5, -10,
+                5, -10
+            );
 
-        // Create sprite
-        this.sprite = scene.physics.add.sprite(x, y, 'player_slave');
+            graphics.generateTexture('player_slave', 32, 48);
+            graphics.destroy();
+        }
+
+        // Create sprite (use real sprites if available, otherwise procedural)
+        const spriteKey = hasRealSprites ? 'slave_spritesheet' : 'player_slave';
+        this.sprite = scene.physics.add.sprite(x, y, spriteKey, 0);
         this.sprite.setCollideWorldBounds(true);
         this.sprite.setSize(16, 28); // Thin collision box for narrow passages
+
+        // Create animations if using real sprites
+        if (hasRealSprites) {
+            this.createSlaveAnimations(scene);
+            this.hasAnimations = true;
+        } else {
+            this.hasAnimations = false;
+        }
 
         // Movement properties (SLAVE CLASS: fast and nimble)
         this.speed = 200; // Faster than Knight will be
@@ -55,6 +69,44 @@ export default class Player {
         this.pushIndicator = null;
     }
 
+    createSlaveAnimations(scene) {
+        // SLAVE CLASS animations from sprite sheet
+        // Based on your sprite sheet layout:
+        // Row 0: Idle frames
+        // Row 1: Walking frames
+        // Row 2: Push action frame
+
+        // Idle animation (frame 0)
+        if (!scene.anims.exists('slave_idle')) {
+            scene.anims.create({
+                key: 'slave_idle',
+                frames: [{ key: 'slave_spritesheet', frame: 0 }],
+                frameRate: 1
+            });
+        }
+
+        // Walk animation (frames 1-4 in row 1)
+        if (!scene.anims.exists('slave_walk')) {
+            scene.anims.create({
+                key: 'slave_walk',
+                frames: scene.anims.generateFrameNumbers('slave_spritesheet', { start: 1, end: 4 }),
+                frameRate: 8,
+                repeat: -1
+            });
+        }
+
+        // Push animation (frame in row 2)
+        if (!scene.anims.exists('slave_push')) {
+            scene.anims.create({
+                key: 'slave_push',
+                frames: [{ key: 'slave_spritesheet', frame: 10 }],
+                frameRate: 1
+            });
+        }
+
+        this.sprite.play('slave_idle');
+    }
+
     update(input, delta) {
         this.pushCooldown = Math.max(0, this.pushCooldown - delta);
         const velocity = new Phaser.Math.Vector2(0, 0);
@@ -77,8 +129,18 @@ export default class Player {
             velocity.normalize();
             this.direction.copy(velocity);
 
-            // Update sprite rotation to face movement direction
-            this.sprite.setRotation(Math.atan2(velocity.y, velocity.x) + Math.PI / 2);
+            // Play walk animation if available
+            if (this.hasAnimations && !this.isPushing) {
+                this.sprite.play('slave_walk', true);
+            } else if (!this.hasAnimations) {
+                // Update sprite rotation to face movement direction (fallback only)
+                this.sprite.setRotation(Math.atan2(velocity.y, velocity.x) + Math.PI / 2);
+            }
+        } else {
+            // Stopped moving - play idle animation if available
+            if (this.hasAnimations && !this.isPushing) {
+                this.sprite.play('slave_idle', true);
+            }
         }
 
         // Apply velocity
@@ -95,6 +157,11 @@ export default class Player {
 
         this.isPushing = true;
         this.pushCooldown = this.pushCooldownMax;
+
+        // Play push animation if available
+        if (this.hasAnimations) {
+            this.sprite.play('slave_push');
+        }
 
         // Visual feedback - push wave
         if (!this.pushIndicator) {
@@ -121,6 +188,10 @@ export default class Player {
             onComplete: () => {
                 this.pushIndicator.alpha = 1;
                 this.isPushing = false;
+                // Return to idle after push
+                if (this.hasAnimations) {
+                    this.sprite.play('slave_idle');
+                }
             }
         });
 
