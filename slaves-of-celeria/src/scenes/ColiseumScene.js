@@ -544,5 +544,4 @@ export default class ColiseumScene extends Phaser.Scene {
             return 'TRANSITION';
         }
     }
-    }
 }
