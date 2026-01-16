@@ -3,31 +3,32 @@ export default class Player {
         this.scene = scene;
 
         // Create player sprite (SLAVE CLASS: thin, nimble, weak)
+        // Zelda-like scale - visible but thin
         const graphics = scene.add.graphics();
 
-        // Small thin body (vertical oval)
+        // Thin body (vertical oval) - thinner than Link
         graphics.fillStyle(0xc3a464, 1); // Gold color for homunculus
-        graphics.fillEllipse(0, 0, 10, 16); // Thin width, taller height
+        graphics.fillEllipse(0, 0, 16, 28); // Thin width, taller height
 
         // Head
         graphics.fillStyle(0xd4b574, 1);
-        graphics.fillCircle(0, -6, 5);
+        graphics.fillCircle(0, -10, 8);
 
         // Directional indicator (small arrow)
         graphics.fillStyle(0x6a3d25, 1);
         graphics.fillTriangle(
-            0, -10,
-            -3, -5,
-            3, -5
+            0, -16,
+            -5, -10,
+            5, -10
         );
 
-        graphics.generateTexture('player_slave', 20, 32);
+        graphics.generateTexture('player_slave', 32, 48);
         graphics.destroy();
 
         // Create sprite
         this.sprite = scene.physics.add.sprite(x, y, 'player_slave');
         this.sprite.setCollideWorldBounds(true);
-        this.sprite.setSize(10, 16); // Thin collision box for narrow passages
+        this.sprite.setSize(16, 28); // Thin collision box for narrow passages
 
         // Movement properties (SLAVE CLASS: fast and nimble)
         this.speed = 200; // Faster than Knight will be

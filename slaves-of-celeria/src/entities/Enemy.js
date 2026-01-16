@@ -3,24 +3,24 @@ export default class Enemy {
         this.scene = scene;
         this.type = type;
 
-        // Create enemy sprite (placeholder)
+        // Create enemy sprite (Zelda-scale spider)
         const graphics = scene.add.graphics();
-        graphics.fillStyle(0x6a3d25, 1); // Brown for spider
-        graphics.fillCircle(0, 0, 14);
+        graphics.fillStyle(0x6a3d25, 1); // Brown for spider body
+        graphics.fillCircle(0, 0, 20);
 
-        // Add legs indicator
-        graphics.lineStyle(2, 0x4a2d15);
+        // Add legs indicator (8 spider legs)
+        graphics.lineStyle(3, 0x4a2d15);
         for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 2;
             graphics.lineBetween(
-                Math.cos(angle) * 8,
-                Math.sin(angle) * 8,
-                Math.cos(angle) * 18,
-                Math.sin(angle) * 18
+                Math.cos(angle) * 12,
+                Math.sin(angle) * 12,
+                Math.cos(angle) * 26,
+                Math.sin(angle) * 26
             );
         }
 
-        graphics.generateTexture('enemy_' + type, 36, 36);
+        graphics.generateTexture('enemy_' + type, 56, 56);
         graphics.destroy();
 
         // Create sprite

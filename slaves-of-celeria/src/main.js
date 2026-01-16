@@ -4,8 +4,8 @@ import PreloadScene from './scenes/PreloadScene.js';
 
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 720,
     parent: 'game-container',
     backgroundColor: '#3d2f1f',
     pixelArt: true,
@@ -16,7 +16,11 @@ const config = {
             debug: false
         }
     },
-    scene: [PreloadScene, ColiseumScene]
+    scene: [PreloadScene, ColiseumScene],
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    }
 };
 
 const game = new Phaser.Game(config);

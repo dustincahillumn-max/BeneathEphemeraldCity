@@ -39,10 +39,10 @@ export default class ColiseumScene extends Phaser.Scene {
         this.enemies = [];
         this.spawnChaserEnemies();
 
-        // Camera
+        // Camera - Zelda-like close zoom
         this.cameras.main.startFollow(this.player.sprite, true, 0.1, 0.1);
         this.cameras.main.setBounds(0, 0, 2400, 1800);
-        this.cameras.main.setZoom(1.5); // Closer zoom for tight spaces
+        this.cameras.main.setZoom(2.5); // Zelda-style close-up view
 
         // Input
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -102,19 +102,19 @@ export default class ColiseumScene extends Phaser.Scene {
         this.createWall(1000, 700, 20, 400); // left wall
         this.createWall(1380, 700, 20, 400); // right wall
 
-        // NARROW PASSAGES (only Slave class fits through - 15px wide)
+        // NARROW PASSAGES (only Slave class fits through - 18px wide, player is 16px)
         // Escape routes from central chamber
-        this.createNarrowPassage(1190, 700, 20, 80, 'vertical'); // North escape
-        this.createNarrowPassage(1190, 1020, 20, 80, 'vertical'); // South escape
+        this.createNarrowPassage(1190, 700, 18, 80, 'vertical'); // North escape
+        this.createNarrowPassage(1190, 1020, 18, 80, 'vertical'); // South escape
 
         // Maze sections with narrow shortcuts
         this.createWall(400, 400, 600, 20);
         this.createWall(400, 800, 600, 20);
-        this.createNarrowPassage(700, 400, 15, 80, 'vertical'); // Shortcut
+        this.createNarrowPassage(700, 400, 18, 80, 'vertical'); // Shortcut
 
         this.createWall(1600, 400, 600, 20);
         this.createWall(1600, 800, 600, 20);
-        this.createNarrowPassage(1900, 400, 15, 80, 'vertical'); // Shortcut
+        this.createNarrowPassage(1900, 400, 18, 80, 'vertical'); // Shortcut
 
         // Decorative elements (egg shells, debris)
         this.createEggShells();
@@ -226,22 +226,24 @@ export default class ColiseumScene extends Phaser.Scene {
     }
 
     createUI() {
-        const width = this.cameras.main.width / this.cameras.main.zoom;
+        // Fixed UI positioning for 1280x720 screen
+        const screenWidth = 1280;
+        const screenHeight = 720;
 
-        // Debug text
+        // Debug text (top left)
         this.debugText = this.add.text(10, 10, '', {
-            font: '11px monospace',
+            font: '14px monospace',
             fill: '#c3a464',
             backgroundColor: '#000000dd',
             padding: { x: 8, y: 6 }
         }).setScrollFactor(0).setDepth(100);
 
-        // UI text
-        this.uiText = this.add.text(10, 550, '', {
-            font: '12px monospace',
+        // UI text (bottom left)
+        this.uiText = this.add.text(10, screenHeight - 90, '', {
+            font: '14px monospace',
             fill: '#ffffff',
             backgroundColor: '#000000aa',
-            padding: { x: 8, y: 4 }
+            padding: { x: 10, y: 6 }
         }).setScrollFactor(0).setDepth(100);
     }
 
