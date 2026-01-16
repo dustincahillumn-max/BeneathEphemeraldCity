@@ -38,7 +38,7 @@ export default class Enemy {
         this.attackCooldownMax = 1000; // ms
 
         // AI state
-        this.state = 'idle'; // idle, chase, attack, retreat
+        this.state = 'idle'; // idle, chase, attack, retreat, stunned
         this.target = null;
         this.patrolDirection = new Phaser.Math.Vector2(
             Phaser.Math.Between(-1, 1),
@@ -47,12 +47,60 @@ export default class Enemy {
         this.patrolTimer = 0;
         this.patrolDuration = 2000;
 
+        // Stun state
+        this.stunned = false;
+        this.stunTimer = 0;
+
         // Visual feedback
         this.flashTween = null;
     }
 
+    stun(duration) {
+        // Enemy gets stunned by push mechanic
+        this.stunned = true;
+        this.stunTimer = duration;
+        this.sprite.setVelocity(0, 0);
+
+        // Visual: Shake and darken
+        this.sprite.setTint(0x808080);
+
+        // Create stars/dizzy effect above head
+        const star1 = this.scene.add.text(this.sprite.x - 10, this.sprite.y - 40, '★', {
+            fontSize: '20px',
+            color: '#ffff00'
+        });
+        const star2 = this.scene.add.text(this.sprite.x + 10, this.sprite.y - 40, '★', {
+            fontSize: '20px',
+            color: '#ffff00'
+        });
+
+        // Animate stars circling
+        this.scene.tweens.add({
+            targets: [star1, star2],
+            y: '-=20',
+            alpha: 0,
+            duration: duration,
+            onComplete: () => {
+                star1.destroy();
+                star2.destroy();
+            }
+        });
+
+        // Clear stun after duration
+        this.scene.time.delayedCall(duration, () => {
+            this.stunned = false;
+            this.sprite.clearTint();
+        });
+    }
+
     update(player, delta) {
         if (this.health <= 0) return;
+
+        // Don't do anything if stunned
+        if (this.stunned) {
+            this.sprite.setVelocity(0, 0);
+            return;
+        }
 
         this.attackCooldown = Math.max(0, this.attackCooldown - delta);
 

@@ -52,11 +52,11 @@ export default class Player {
         this.health = 50; // Fragile slave
         this.maxHealth = 50;
 
-        // PUSH mechanic (core Slave ability)
-        this.pushForce = 250;
-        this.pushRange = 40;
+        // PUSH mechanic (core Slave ability) - POWERFUL IMPACT
+        this.pushForce = 500; // DOUBLED - much stronger
+        this.pushRange = 80; // DOUBLED - wider area
         this.pushCooldown = 0;
-        this.pushCooldownMax = 300; // ms - fast push
+        this.pushCooldownMax = 500; // ms - slightly longer cooldown for balance
         this.isPushing = false;
 
         // Kanna knowledge
@@ -171,20 +171,31 @@ export default class Player {
         // Direction player is facing
         const pushDir = this.direction.clone().normalize();
 
-        // Draw push wave
+        // Draw POWERFUL push wave (thicker, brighter)
         this.pushIndicator.clear();
-        this.pushIndicator.lineStyle(4, 0xc3a464, 0.9);
+        this.pushIndicator.lineStyle(8, 0xffd700, 1); // Thicker, gold
         this.pushIndicator.strokeCircle(
             this.sprite.x,
             this.sprite.y,
             this.pushRange
         );
 
-        // Expanding wave animation
+        // Add inner ring for extra impact
+        this.pushIndicator.lineStyle(4, 0xffffff, 0.8);
+        this.pushIndicator.strokeCircle(
+            this.sprite.x,
+            this.sprite.y,
+            this.pushRange * 0.7
+        );
+
+        // SCREEN SHAKE for impact feel
+        this.scene.cameras.main.shake(150, 0.005);
+
+        // Expanding wave animation (faster, more impactful)
         this.scene.tweens.add({
             targets: this.pushIndicator,
             alpha: 0,
-            duration: 250,
+            duration: 200, // Faster
             onComplete: () => {
                 this.pushIndicator.alpha = 1;
                 this.isPushing = false;
@@ -219,10 +230,22 @@ export default class Player {
                 );
 
                 if (enemy.sprite && enemy.sprite.body) {
+                    // POWERFUL knockback
                     enemy.sprite.setVelocity(
-                        knockback.x * this.pushForce * 2,
-                        knockback.y * this.pushForce * 2
+                        knockback.x * this.pushForce * 3, // Triple force!
+                        knockback.y * this.pushForce * 3
                     );
+
+                    // Visual feedback: Flash enemy white
+                    enemy.sprite.setTint(0xffffff);
+                    this.scene.time.delayedCall(100, () => {
+                        enemy.sprite.clearTint();
+                    });
+
+                    // Stun enemy briefly
+                    if (enemy.stun) {
+                        enemy.stun(800); // 0.8 second stun
+                    }
                 }
 
                 pushedCount++;

@@ -240,69 +240,45 @@ export default class ColiseumScene extends Phaser.Scene {
     }
 
     createSpatialFlow() {
-        // Outer arena walls
+        // OPEN COLISEUM ARENA - Not a cramped maze!
+
+        // Outer arena walls only (create open space)
         this.createWall(0, 0, 2400, 20); // top
         this.createWall(0, 1780, 2400, 20); // bottom
         this.createWall(0, 0, 20, 1800); // left
         this.createWall(2380, 0, 20, 1800); // right
 
-        // PRIMARY PATH: Central Chamber (spawn area) - clear boundaries
-        this.createWall(900, 700, 20, 400); // left wall
-        this.createWall(1480, 700, 20, 400); // right wall
-        this.createWall(900, 700, 600, 20); // top wall
-        this.createWall(900, 1100, 600, 20); // bottom wall
+        // Just a FEW strategic obstacles (not full mazes)
+        // Broken pillars scattered around (provide cover, not walls)
+        this.createPillar(400, 400);
+        this.createPillar(2000, 400);
+        this.createPillar(400, 1400);
+        this.createPillar(2000, 1400);
+        this.createPillar(600, 900);
+        this.createPillar(1800, 900);
 
-        // NARROW PASSAGES: Slave-only escapes (18px wide, player is 16px)
-        // North escape (toward throne) - SIGHT LINE to landmark
-        this.createNarrowPassage(1190, 700, 18, 80, 'vertical');
-        // South escape (toward puzzle zones)
-        this.createNarrowPassage(1190, 1020, 18, 80, 'vertical');
-        // West escape (toward chase corridor)
-        this.createNarrowPassage(900, 850, 80, 18, 'horizontal');
-        // East escape (toward chase corridor)
-        this.createNarrowPassage(1480, 850, 80, 18, 'horizontal');
+        // Central raised platform (where egg is)
+        this.createWall(1000, 800, 400, 20); // top
+        this.createWall(1000, 1000, 400, 20); // bottom
+        this.createWall(1000, 800, 20, 200); // left
+        this.createWall(1380, 800, 20, 200); // right
 
-        // WEST CHASE CORRIDOR (secondary path)
-        this.createWall(200, 400, 20, 800);
-        this.createWall(800, 400, 20, 800);
-        this.createWall(200, 400, 620, 20);
-        this.createWall(200, 1180, 620, 20);
+        // 4 narrow passages through central platform (slave can squeeze, knight cannot)
+        this.createNarrowPassage(1190, 800, 18, 40, 'vertical'); // North
+        this.createNarrowPassage(1190, 980, 18, 40, 'vertical'); // South
+        this.createNarrowPassage(1000, 890, 40, 18, 'horizontal'); // West
+        this.createNarrowPassage(1360, 890, 40, 18, 'horizontal'); // East
 
-        // Narrow shortcut through west corridor
-        this.createNarrowPassage(500, 780, 18, 80, 'vertical');
+        // That's it! Rest is OPEN ARENA for push mechanics
+    }
 
-        // EAST CHASE CORRIDOR (secondary path)
-        this.createWall(1600, 400, 20, 800);
-        this.createWall(2200, 400, 20, 800);
-        this.createWall(1600, 400, 620, 20);
-        this.createWall(1600, 1180, 620, 20);
-
-        // Narrow shortcut through east corridor
-        this.createNarrowPassage(1900, 780, 18, 80, 'vertical');
-
-        // NORTH PATH toward Spider Throne (tension build)
-        this.createWall(900, 300, 600, 20);
-        this.createWall(900, 300, 20, 420);
-        this.createWall(1480, 300, 20, 420);
-
-        // Frame the throne view (sight line)
-        this.createWall(1100, 100, 20, 180);
-        this.createWall(1300, 100, 20, 180);
-
-        // SOUTH PUZZLE CHAMBERS (optional exploration)
-        // West chamber
-        this.createWall(200, 1200, 620, 20);
-        this.createWall(200, 1600, 620, 20);
-        this.createWall(200, 1200, 20, 400);
-        this.createWall(800, 1200, 20, 400);
-        this.createNarrowPassage(500, 1200, 18, 60, 'vertical'); // Entry squeeze
-
-        // East chamber
-        this.createWall(1600, 1200, 620, 20);
-        this.createWall(1600, 1600, 620, 20);
-        this.createWall(1600, 1200, 20, 400);
-        this.createWall(2200, 1200, 20, 400);
-        this.createNarrowPassage(1900, 1200, 18, 60, 'vertical'); // Entry squeeze
+    createPillar(x, y) {
+        // Broken circular pillar (provides cover but doesn't block)
+        const pillar = this.add.circle(x, y, 40, 0x8a6d4a);
+        pillar.setStrokeStyle(4, 0x6a4d2a);
+        this.physics.add.existing(pillar, true);
+        this.walls.add(pillar);
+        pillar.setDepth(1);
     }
 
     createWall(x, y, width, height, color = 0x6a3d25) {
