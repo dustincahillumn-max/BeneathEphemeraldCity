@@ -9,6 +9,13 @@ import KannaLibrary from '../ui/KannaLibrary.js';
 /**
  * Coliseum Scene - Starting arena where homunculi hatch from eggs
  * SLAVE CLASS gameplay: avoid, push, escape through narrow passages
+ *
+ * LEVEL DESIGN PRINCIPLES APPLIED (from leveldesignbook.com):
+ * 1. LANDMARKS - Giant egg monument (spawn), Spider throne (goal), Egg pile corners
+ * 2. PACING ZONES - Safe spawn (calm), Chase corridors (action), Puzzle chambers (thinking)
+ * 3. SIGHT LINES - Framed view of throne, torch lights guide paths
+ * 4. VISUAL HIERARCHY - Color zones (bright=safe, dark=puzzle), animated guides
+ * 5. SPATIAL FLOW - Clear primary path with narrow slave-only shortcuts
  */
 export default class ColiseumScene extends Phaser.Scene {
     constructor() {
@@ -73,51 +80,229 @@ export default class ColiseumScene extends Phaser.Scene {
     createColiseumArena() {
         const graphics = this.add.graphics();
 
-        // Arena floor (sandy coliseum)
-        graphics.fillStyle(0x3d2f1f, 1);
-        graphics.fillRect(0, 0, 2400, 1800);
-
-        // Grid pattern
-        graphics.lineStyle(1, 0x2d1f0f, 0.4);
-        for (let x = 0; x < 2400; x += 32) {
-            graphics.lineBetween(x, 0, x, 1800);
-        }
-        for (let y = 0; y < 1800; y += 32) {
-            graphics.lineBetween(0, y, 2400, y);
-        }
-
-        // Create walls and passages
+        // Create walls group
         this.walls = this.physics.add.staticGroup();
 
+        // LEVEL DESIGN PRINCIPLE: Pacing Zones with Visual Hierarchy
+        this.createPacingZones();
+
+        // LEVEL DESIGN PRINCIPLE: Landmarks for Orientation
+        this.createLandmarks();
+
+        // LEVEL DESIGN PRINCIPLE: Spatial Flow with Clear Paths
+        this.createSpatialFlow();
+
+        // Decorative elements (egg shells, debris)
+        this.createEggShells();
+    }
+
+    createPacingZones() {
+        // ZONE 1: SAFE SPAWN (Bright, calm - 1000x1000 center)
+        const safeZone = this.add.rectangle(1200, 900, 400, 400, 0x4d3f2f, 0.3);
+        safeZone.setDepth(0);
+
+        // ZONE 2: CHASE CORRIDORS (Medium, action - 600px wide corridors)
+        const chaseZone1 = this.add.rectangle(500, 600, 600, 400, 0x3d2f1f, 0.5);
+        const chaseZone2 = this.add.rectangle(1900, 600, 600, 400, 0x3d2f1f, 0.5);
+        chaseZone1.setDepth(0);
+        chaseZone2.setDepth(0);
+
+        // ZONE 3: PUZZLE CHAMBERS (Dark, thinking)
+        const puzzleZone1 = this.add.rectangle(500, 1400, 600, 300, 0x2d1f0f, 0.7);
+        const puzzleZone2 = this.add.rectangle(1900, 1400, 600, 300, 0x2d1f0f, 0.7);
+        puzzleZone1.setDepth(0);
+        puzzleZone2.setDepth(0);
+
+        // Add subtle grid pattern to floor
+        const gridGraphics = this.add.graphics();
+        gridGraphics.lineStyle(1, 0x2d1f0f, 0.2);
+        for (let x = 0; x < 2400; x += 32) {
+            gridGraphics.lineBetween(x, 0, x, 1800);
+        }
+        for (let y = 0; y < 1800; y += 32) {
+            gridGraphics.lineBetween(0, y, 2400, y);
+        }
+    }
+
+    createLandmarks() {
+        // LANDMARK 1: Giant Egg Monument (spawn point) - MASSIVE and visible
+        const eggX = 1200;
+        const eggY = 900;
+
+        // Outer egg shell (cracked, massive)
+        const outerShell = this.add.ellipse(eggX, eggY, 140, 180, 0xf0e6d0, 0.8);
+        outerShell.setStrokeStyle(6, 0xc0b6a0);
+        outerShell.setDepth(1);
+
+        // Crack pattern
+        const crackGraphics = this.add.graphics();
+        crackGraphics.lineStyle(4, 0xa09080, 1);
+        crackGraphics.beginPath();
+        crackGraphics.moveTo(eggX - 40, eggY - 60);
+        crackGraphics.lineTo(eggX - 20, eggY);
+        crackGraphics.lineTo(eggX - 50, eggY + 40);
+        crackGraphics.moveTo(eggX + 40, eggY - 40);
+        crackGraphics.lineTo(eggX + 30, eggY + 20);
+        crackGraphics.strokePath();
+        crackGraphics.setDepth(2);
+
+        // Glowing interior (life energy)
+        const glow = this.add.circle(eggX, eggY, 50, 0xffd700, 0.3);
+        glow.setDepth(0);
+        this.tweens.add({
+            targets: glow,
+            alpha: { from: 0.2, to: 0.4 },
+            scale: { from: 1, to: 1.1 },
+            duration: 2000,
+            yoyo: true,
+            repeat: -1
+        });
+
+        // LANDMARK 2: Spider Throne (North - distant goal)
+        const throneX = 1200;
+        const throneY = 200;
+
+        // Throne base
+        const throne = this.add.rectangle(throneX, throneY, 120, 80, 0x4a2d15);
+        throne.setDepth(1);
+
+        // Spider statue on throne
+        const spiderStatue = this.add.circle(throneX, throneY - 30, 35, 0x6a3d25);
+        spiderStatue.setDepth(1);
+
+        // Spider legs (decorative)
+        const legGraphics = this.add.graphics();
+        legGraphics.lineStyle(4, 0x4a2d15, 1);
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            legGraphics.lineBetween(
+                throneX + Math.cos(angle) * 20,
+                throneY - 30 + Math.sin(angle) * 20,
+                throneX + Math.cos(angle) * 45,
+                throneY - 30 + Math.sin(angle) * 45
+            );
+        }
+        legGraphics.setDepth(1);
+
+        // LANDMARK 3: Broken Egg Piles (corners - exploration rewards)
+        this.createEggPileLandmark(300, 300);
+        this.createEggPileLandmark(2100, 300);
+        this.createEggPileLandmark(300, 1500);
+        this.createEggPileLandmark(2100, 1500);
+
+        // VISUAL GUIDES: Torches lighting the way
+        this.createTorchLight(800, 900);  // Guide west
+        this.createTorchLight(1600, 900); // Guide east
+        this.createTorchLight(1200, 500); // Guide north to throne
+    }
+
+    createEggPileLandmark(x, y) {
+        // Pile of broken eggs
+        for (let i = 0; i < 5; i++) {
+            const offsetX = Phaser.Math.Between(-30, 30);
+            const offsetY = Phaser.Math.Between(-30, 30);
+            const eggPiece = this.add.ellipse(
+                x + offsetX,
+                y + offsetY,
+                30 + i * 5,
+                40 + i * 5,
+                0xf0e6d0,
+                0.5
+            );
+            eggPiece.setStrokeStyle(2, 0xd0c6b0);
+            eggPiece.setDepth(1);
+        }
+    }
+
+    createTorchLight(x, y) {
+        // Torch base
+        const torch = this.add.rectangle(x, y, 12, 40, 0x4a2d15);
+        torch.setDepth(1);
+
+        // Flame
+        const flame = this.add.circle(x, y - 25, 15, 0xff6600, 0.6);
+        flame.setDepth(2);
+
+        // Glow effect
+        const torchGlow = this.add.circle(x, y - 25, 60, 0xff8800, 0.15);
+        torchGlow.setDepth(0);
+
+        // Animate flame
+        this.tweens.add({
+            targets: [flame, torchGlow],
+            alpha: { from: 0.4, to: 0.7 },
+            scaleX: { from: 0.9, to: 1.1 },
+            scaleY: { from: 1.1, to: 0.9 },
+            duration: 800 + Math.random() * 400,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    createSpatialFlow() {
         // Outer arena walls
         this.createWall(0, 0, 2400, 20); // top
         this.createWall(0, 1780, 2400, 20); // bottom
         this.createWall(0, 0, 20, 1800); // left
         this.createWall(2380, 0, 20, 1800); // right
 
-        // Interior maze-like structure
-        // Central egg chamber
-        this.createWall(1000, 700, 400, 20); // top wall
-        this.createWall(1000, 1100, 400, 20); // bottom wall
-        this.createWall(1000, 700, 20, 400); // left wall
-        this.createWall(1380, 700, 20, 400); // right wall
+        // PRIMARY PATH: Central Chamber (spawn area) - clear boundaries
+        this.createWall(900, 700, 20, 400); // left wall
+        this.createWall(1480, 700, 20, 400); // right wall
+        this.createWall(900, 700, 600, 20); // top wall
+        this.createWall(900, 1100, 600, 20); // bottom wall
 
-        // NARROW PASSAGES (only Slave class fits through - 18px wide, player is 16px)
-        // Escape routes from central chamber
-        this.createNarrowPassage(1190, 700, 18, 80, 'vertical'); // North escape
-        this.createNarrowPassage(1190, 1020, 18, 80, 'vertical'); // South escape
+        // NARROW PASSAGES: Slave-only escapes (18px wide, player is 16px)
+        // North escape (toward throne) - SIGHT LINE to landmark
+        this.createNarrowPassage(1190, 700, 18, 80, 'vertical');
+        // South escape (toward puzzle zones)
+        this.createNarrowPassage(1190, 1020, 18, 80, 'vertical');
+        // West escape (toward chase corridor)
+        this.createNarrowPassage(900, 850, 80, 18, 'horizontal');
+        // East escape (toward chase corridor)
+        this.createNarrowPassage(1480, 850, 80, 18, 'horizontal');
 
-        // Maze sections with narrow shortcuts
-        this.createWall(400, 400, 600, 20);
-        this.createWall(400, 800, 600, 20);
-        this.createNarrowPassage(700, 400, 18, 80, 'vertical'); // Shortcut
+        // WEST CHASE CORRIDOR (secondary path)
+        this.createWall(200, 400, 20, 800);
+        this.createWall(800, 400, 20, 800);
+        this.createWall(200, 400, 620, 20);
+        this.createWall(200, 1180, 620, 20);
 
-        this.createWall(1600, 400, 600, 20);
-        this.createWall(1600, 800, 600, 20);
-        this.createNarrowPassage(1900, 400, 18, 80, 'vertical'); // Shortcut
+        // Narrow shortcut through west corridor
+        this.createNarrowPassage(500, 780, 18, 80, 'vertical');
 
-        // Decorative elements (egg shells, debris)
-        this.createEggShells();
+        // EAST CHASE CORRIDOR (secondary path)
+        this.createWall(1600, 400, 20, 800);
+        this.createWall(2200, 400, 20, 800);
+        this.createWall(1600, 400, 620, 20);
+        this.createWall(1600, 1180, 620, 20);
+
+        // Narrow shortcut through east corridor
+        this.createNarrowPassage(1900, 780, 18, 80, 'vertical');
+
+        // NORTH PATH toward Spider Throne (tension build)
+        this.createWall(900, 300, 600, 20);
+        this.createWall(900, 300, 20, 420);
+        this.createWall(1480, 300, 20, 420);
+
+        // Frame the throne view (sight line)
+        this.createWall(1100, 100, 20, 180);
+        this.createWall(1300, 100, 20, 180);
+
+        // SOUTH PUZZLE CHAMBERS (optional exploration)
+        // West chamber
+        this.createWall(200, 1200, 620, 20);
+        this.createWall(200, 1600, 620, 20);
+        this.createWall(200, 1200, 20, 400);
+        this.createWall(800, 1200, 20, 400);
+        this.createNarrowPassage(500, 1200, 18, 60, 'vertical'); // Entry squeeze
+
+        // East chamber
+        this.createWall(1600, 1200, 620, 20);
+        this.createWall(1600, 1600, 620, 20);
+        this.createWall(1600, 1200, 20, 400);
+        this.createWall(2200, 1200, 20, 400);
+        this.createNarrowPassage(1900, 1200, 18, 60, 'vertical'); // Entry squeeze
     }
 
     createWall(x, y, width, height, color = 0x6a3d25) {
@@ -128,22 +313,45 @@ export default class ColiseumScene extends Phaser.Scene {
     }
 
     createNarrowPassage(x, y, width, height, orientation) {
-        // Visual indicator that this is a narrow passage
-        const passage = this.add.rectangle(x, y, width, height, 0x8a5d35, 0.5);
+        // VISUAL GUIDE: Highlight narrow passages with color
+        const passage = this.add.rectangle(x, y, width, height, 0x8a5d35, 0.6);
         passage.setOrigin(0, 0);
+        passage.setDepth(1);
 
-        // Add text hint
-        const hint = this.add.text(
-            x + (orientation === 'vertical' ? -10 : width / 2),
-            y + (orientation === 'vertical' ? height / 2 : -15),
-            '→',
-            {
-                fontSize: '12px',
-                color: '#c3a464',
-                rotation: orientation === 'vertical' ? Math.PI / 2 : 0
-            }
-        );
-        hint.setOrigin(0.5, 0.5);
+        // Glowing border effect (guides player attention)
+        const borderColor = 0xc3a464;
+        if (orientation === 'vertical') {
+            this.add.rectangle(x - 2, y, 2, height, borderColor, 0.8).setOrigin(0, 0).setDepth(1);
+            this.add.rectangle(x + width, y, 2, height, borderColor, 0.8).setOrigin(0, 0).setDepth(1);
+        } else {
+            this.add.rectangle(x, y - 2, width, 2, borderColor, 0.8).setOrigin(0, 0).setDepth(1);
+            this.add.rectangle(x, y + height, width, 2, borderColor, 0.8).setOrigin(0, 0).setDepth(1);
+        }
+
+        // Animated arrow hint
+        const arrowX = x + (orientation === 'vertical' ? width / 2 : width / 2);
+        const arrowY = y + (orientation === 'vertical' ? height / 2 : height / 2);
+        const arrow = this.add.text(arrowX, arrowY, '→', {
+            fontSize: '16px',
+            color: '#ffd700',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        arrow.setOrigin(0.5, 0.5);
+        arrow.setDepth(2);
+        if (orientation === 'vertical') {
+            arrow.setRotation(Math.PI / 2);
+        }
+
+        // Pulse animation to draw attention
+        this.tweens.add({
+            targets: arrow,
+            alpha: { from: 0.5, to: 1 },
+            scale: { from: 0.9, to: 1.1 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1
+        });
     }
 
     createEggShells() {
@@ -158,14 +366,9 @@ export default class ColiseumScene extends Phaser.Scene {
     }
 
     createPlayerSpawn() {
-        // Central egg spawn point
+        // Player spawns from the giant egg landmark (already created in createLandmarks)
         const eggX = 1200;
         const eggY = 900;
-
-        // Giant egg (cracked open)
-        const egg = this.add.ellipse(eggX, eggY + 20, 60, 80, 0xf0e6d0);
-        egg.setStrokeStyle(4, 0xd0c6b0);
-        egg.setAlpha(0.7);
 
         // Player spawns here
         this.player = new Player(this, eggX, eggY);
@@ -176,15 +379,23 @@ export default class ColiseumScene extends Phaser.Scene {
     }
 
     createPuzzleObjects() {
-        // Pushable blocks for puzzle solving
-        this.addPushableBlock(700, 600);
-        this.addPushableBlock(1700, 600);
-        this.addPushableBlock(600, 1200);
-        this.addPushableBlock(1800, 1200);
+        // PUZZLE ZONE: South chambers have pushable blocks
+        // West puzzle chamber
+        this.addPushableBlock(400, 1400);
+        this.addPushableBlock(600, 1450);
 
-        // Egg shells (pushable debris)
-        this.addPushableObject(1100, 800, 'egg_shell');
+        // East puzzle chamber
+        this.addPushableBlock(1800, 1400);
+        this.addPushableBlock(2000, 1450);
+
+        // Chase corridors have fewer pushables (obstacles during chase)
+        this.addPushableBlock(500, 700);
+        this.addPushableBlock(1900, 700);
+
+        // Egg shells (pushable debris) scattered in spawn zone
+        this.addPushableObject(1100, 950, 'egg_shell');
         this.addPushableObject(1300, 950, 'egg_shell');
+        this.addPushableObject(1200, 1050, 'egg_shell');
     }
 
     addPushableBlock(x, y, type = 'block') {
@@ -199,12 +410,26 @@ export default class ColiseumScene extends Phaser.Scene {
     }
 
     spawnChaserEnemies() {
-        // Enemies that CHASE but don't kill instantly - you must avoid
-        this.spawnChaser(500, 500);
-        this.spawnChaser(1900, 500);
-        this.spawnChaser(500, 1300);
-        this.spawnChaser(1900, 1300);
-        this.spawnChaser(1200, 600);
+        // PACING: No enemies in safe spawn zone!
+        // Enemies concentrate in CHASE CORRIDORS and near throne
+
+        // West chase corridor (3 spiders)
+        this.spawnChaser(500, 600);
+        this.spawnChaser(500, 900);
+        this.spawnChaser(500, 1100);
+
+        // East chase corridor (3 spiders)
+        this.spawnChaser(1900, 600);
+        this.spawnChaser(1900, 900);
+        this.spawnChaser(1900, 1100);
+
+        // North path to throne (2 guards)
+        this.spawnChaser(1050, 450);
+        this.spawnChaser(1350, 450);
+
+        // Puzzle chambers (1 each - lower threat)
+        this.spawnChaser(500, 1400);
+        this.spawnChaser(1900, 1400);
     }
 
     spawnChaser(x, y) {
@@ -219,10 +444,12 @@ export default class ColiseumScene extends Phaser.Scene {
     }
 
     registerKannaLocations() {
-        this.kannaSystem.registerSpawnLocation(300, 300);
-        this.kannaSystem.registerSpawnLocation(2100, 300);
-        this.kannaSystem.registerSpawnLocation(300, 1500);
-        this.kannaSystem.registerSpawnLocation(2100, 1500);
+        // Kanna spawns at landmarks (rewards exploration)
+        this.kannaSystem.registerSpawnLocation(300, 300);   // NW egg pile
+        this.kannaSystem.registerSpawnLocation(2100, 300);  // NE egg pile
+        this.kannaSystem.registerSpawnLocation(300, 1500);  // SW egg pile
+        this.kannaSystem.registerSpawnLocation(2100, 1500); // SE egg pile
+        this.kannaSystem.registerSpawnLocation(1200, 200);  // Spider throne
     }
 
     createUI() {
@@ -308,9 +535,11 @@ export default class ColiseumScene extends Phaser.Scene {
         // Debug
         if (this.showDebug) {
             const dominant = this.intentionEngine.getDominantMotivation();
+            const zone = this.getCurrentZone();
             this.debugText.setText([
                 `=== COLISEUM (SLAVE CLASS) ===`,
                 `Position: ${Math.floor(this.player.sprite.x)}, ${Math.floor(this.player.sprite.y)}`,
+                `Zone: ${zone}`,
                 `Enemies: ${this.enemies.length}`,
                 `Pushables: ${this.pushableObjects.length}`,
                 '',
@@ -318,5 +547,26 @@ export default class ColiseumScene extends Phaser.Scene {
                 `Aggression: ${Math.floor(this.intentionEngine.motivations.aggression)}`
             ]);
         }
+    }
+
+    getCurrentZone() {
+        const x = this.player.sprite.x;
+        const y = this.player.sprite.y;
+
+        // Determine which pacing zone player is in
+        if (x > 1000 && x < 1400 && y > 700 && y < 1100) {
+            return 'SAFE SPAWN';
+        } else if ((x > 200 && x < 800 && y > 400 && y < 1200) ||
+                   (x > 1600 && x < 2200 && y > 400 && y < 1200)) {
+            return 'CHASE CORRIDOR';
+        } else if ((x > 200 && x < 800 && y > 1200 && y < 1600) ||
+                   (x > 1600 && x < 2200 && y > 1200 && y < 1600)) {
+            return 'PUZZLE CHAMBER';
+        } else if (y < 400) {
+            return 'THRONE APPROACH';
+        } else {
+            return 'TRANSITION';
+        }
+    }
     }
 }
