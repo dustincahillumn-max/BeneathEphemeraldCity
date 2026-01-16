@@ -57,54 +57,87 @@ export default class PreloadScene extends Phaser.Scene {
             console.log('Asset not found (using placeholder):', file.key);
         });
 
-        // SLAVE → KNIGHT PROTAGONIST (32x32 sprites)
-        this.load.spritesheet('slave_spritesheet', 'assets/sprites/slave-knight-sheet.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
+        // COMPOSITE SPRITE SHEETS (use your images as-is!)
+        // Just save your composite images directly - no need to split them up
 
-        // ENEMIES (32x32)
-        this.load.spritesheet('enemies_guards', 'assets/sprites/enemies-guards.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
-        this.load.spritesheet('enemies_ghosts', 'assets/sprites/enemies-ghosts.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
+        // Sheet 1: Characters & NPCs (Slave, Knight, NPCs, Collar system, Familiars)
+        this.load.image('sheet_characters', 'assets/sprites/sheet1-characters-npcs.png');
 
-        // DUNGEON ENVIRONMENT (32x32 tiles)
-        this.load.spritesheet('dungeon_tiles', 'assets/tiles/dungeon-environment.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
+        // Sheet 2: Dungeon & Enemies (Environment tiles, Guards, Ghosts, Levers)
+        this.load.image('sheet_dungeon', 'assets/sprites/sheet2-dungeon-enemies.png');
 
-        // NPC INTERACTIONS (32x32)
-        this.load.spritesheet('npc_interactions', 'assets/sprites/npc-interactions.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
-
-        // CHAIN SYSTEM FX
-        this.load.spritesheet('chain_fx', 'assets/fx/chain-system.png', {
-            frameWidth: 32,
-            frameHeight: 32
-        });
-
-        // KANNA SIGILS (16x16)
-        this.load.spritesheet('kanna_sigils', 'assets/fx/kanna-sigils.png', {
-            frameWidth: 16,
-            frameHeight: 16
-        });
-
-        // COLLAR & KEYS (16x16)
-        this.load.spritesheet('collar_keys', 'assets/ui/collar-keys.png', {
-            frameWidth: 16,
-            frameHeight: 16
-        });
+        // Sheet 3: Systems & FX (Kanna sigils, Chains, Cultists, Demons)
+        this.load.image('sheet_systems', 'assets/sprites/sheet3-systems-fx.png');
     }
 
     create() {
+        // Extract sprite regions from composite sheets
+        this.extractSpriteRegions();
+
         this.scene.start('ColiseumScene');
+    }
+
+    extractSpriteRegions() {
+        // Only extract if the composite sheets loaded
+        if (!this.textures.exists('sheet_characters')) {
+            console.log('Composite sheets not found - using procedural graphics');
+            return;
+        }
+
+        // SHEET 1: CHARACTERS & NPCs
+        // Extract Slave protagonist sprites (top-left, 32x32 each)
+        // Based on your sprite sheet: Idle, Walking, Beating, Feinting, Rotunities
+        if (this.textures.exists('sheet_characters')) {
+            const charSheet = this.textures.get('sheet_characters');
+
+            // Slave Idle (first frame at 0,0)
+            charSheet.add('slave_idle', 0, 0, 0, 32, 32);
+
+            // Slave Walk frames (frames 1-4)
+            charSheet.add('slave_walk_0', 0, 32, 0, 32, 32);  // frame 1
+            charSheet.add('slave_walk_1', 0, 64, 0, 32, 32);  // frame 2
+            charSheet.add('slave_walk_2', 0, 96, 0, 32, 32);  // frame 3
+            charSheet.add('slave_walk_3', 0, 128, 0, 32, 32); // frame 4
+
+            // Slave Push (row 2, first frame)
+            charSheet.add('slave_push', 0, 0, 32, 32, 32);
+
+            // Create a sprite sheet texture for easier animation
+            this.textures.addSpriteSheet('slave_spritesheet',
+                charSheet.source[0].image,
+                { frameWidth: 32, frameHeight: 32, startFrame: 0, endFrame: 14 }
+            );
+        }
+
+        // SHEET 2: DUNGEON & ENEMIES
+        if (this.textures.exists('sheet_dungeon')) {
+            const dungeonSheet = this.textures.get('sheet_dungeon');
+
+            // Dungeon tiles (32x32 grid)
+            // We'll extract these as needed for walls, floors, doors
+            this.textures.addSpriteSheet('dungeon_tiles',
+                dungeonSheet.source[0].image,
+                { frameWidth: 32, frameHeight: 32 }
+            );
+
+            // Enemy sprites (will extract specific ones later)
+            this.textures.addSpriteSheet('enemies_guards',
+                dungeonSheet.source[0].image,
+                { frameWidth: 32, frameHeight: 32 }
+            );
+        }
+
+        // SHEET 3: SYSTEMS & FX
+        if (this.textures.exists('sheet_systems')) {
+            const systemsSheet = this.textures.get('sheet_systems');
+
+            // Kanna sigils (16x16)
+            // Will extract specific sigil positions as needed
+
+            // Chain system (various sizes)
+            // Will extract chain segments dynamically
+        }
+
+        console.log('Sprite regions extracted from composite sheets!');
     }
 }
