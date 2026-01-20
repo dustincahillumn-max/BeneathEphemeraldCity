@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.db
+.env
+.env.*
+.venv/
+venv/
+.idea/
+.DS_Store
+storage/audio/*
+!storage/audio/.gitkeep
